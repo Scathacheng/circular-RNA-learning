@@ -1,0 +1,14 @@
+#0325
+#CIRI2
+#jcdai
+
+
+#1 BWA mapping
+#bwa mem -T 19 hg19.fa sample_1.fq sample_2.fq > output.sam
+/opt/tools/seq-analysis/bwa-0.7.12/bwa index /zs32/home/frwang/database/GRCh37.p13.genome.fa
+/opt/tools/seq-analysis/bwa-0.7.12/bwa mem -T 19 /zs32/home/frwang/database/GRCh37.p13.genome.fa /zs32/data-analysis/liucy_group/shareData/microRNA.2015-6-10/reads/Human_M30-T12-V-IM15025-R02_good_1.fq /zs32/data-analysis/liucy_group/shareData/microRNA.2015-6-10/reads/Human_M30-T12-V-IM15025-R02_good_2.fq > /zs32/home/jcdai/04circRNA/02test/output.sam
+
+#2 CIRI2
+perl /zs32/home/jcdai/04circRNA/01package/CIRI-full_v2.0/bin/CIRI2.pl -I /zs32/home/jcdai/04circRNA/02test/output.sam -O /zs32/home/jcdai/04circRNA/02test/output.ciri2 -A /zs32/data-analysis/liucy_group/llhuang/Reflib/gencode.v19.annotation.gtf -F /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/hg19.fa
+
+
