@@ -1,0 +1,116 @@
+#0325
+#CIRCexplorer2
+#jcdai
+
+git clone git://github.com/YangLab/CIRCexplorer2.git
+#CIRCexplorer2 requires the gene annotation file and the reference genome sequence file to annotate circular RNAs
+
+
+######################################################################################
+#alignment for circular RNA fusion junction reads
+#TopHat2
+#from index files
+CIRCexplorer2 align -G hg19_kg.gtf -i bowtie1_index -j bowtie2_index -f RNA_seq.fastq > CIRCexplorer2_align.log
+#from genome sequence
+CIRCexplorer2 align -G hg19_kg.gtf -g hg19.fa -f RNA_seq.fastq > CIRCexplorer2_align.log
+
+#to align manually 自己手工align
+#single-read sequencing
+#TopHat2/TopHat-Fusion
+tophat2 -a 6 --microexon-search -m 2 -p 10 -G knownGene.gtf -o tophat hg19_bowtie2_index RNA_seq.fastq
+bamToFastq -i tophat/unmapped.bam -fq tophat/unmapped.fastq
+tophat2 -o tophat_fusion -p 15 --fusion-search --keep-fasta-order --bowtie1 --no-coverage-search hg19_bowtie1_index tophat/unmapped.fastq
+#STAR
+STAR --chimSegmentMin 10 --runThreadN 10 --genomeDir hg19_STAR_index --readFilesIn RNA_seq.fastq
+#MapSplice
+mapsplice.py -p 10 -k 1 --non-canonical --fusion-non-canonical --min-fusion-distance 200 -c hg19_dir -x bowtie1_index --gene-gtf hg19_kg.gtf -1 RNA_seq.fastq
+#BWA
+bwa mem -T 19 -t 10 hg19_bwa_index RNA_seq.fastq > RNA_seq_bwa.sam
+#segemehl 
+segemehl.x -q RNA_seq.fastq -d hg19.fa -i hg19_segemehl.idx -S -M 1 -t 10 -o RNA_seq.sam
+testrealign.x -d hg19.fa -q RNA_seq.sam -n
+#paired-read sequencing
+#STAR
+STAR --chimSegmentMin 10 --runThreadN 10 --genomeDir hg19_STAR_index --readFilesIn read_1.fastq read_2.fastq
+#TopHat-Fusion
+tophat2 -o tophat_fusion -p 15 --fusion-search --keep-fasta-order --bowtie1 --no-coverage-search hg19_bowtie1_index read_1.fastq read_2.fastq
+
+#手工align完还要整合
+
+
+######################################################################################
+
+#annotating for circular RNA
+CIRCexplorer2 annotate -r hg19_ref_all.txt -g hg19.fa -b back_spliced_junction.bed -o circularRNA_known.txt > CIRCexplorer2_annotate.log
+#De Novo assembly for circular RNA transcripts
+CIRCexplorer2 assemble -r hg19_ref_all.txt -m tophat -o assemble > CIRCexplorer2_assemble.log
+#Characterization of Circular RNA Alternative Splicing
+CIRCexplorer2 denovo -r hg19_ref_all.txt -g hg19.fa -b back_spliced_junction.bed --abs abs --as as -m tophat -n pAplus_tophat -o denovo > CIRCexplorer2_denovo.log
+
+
+######################################################################################
+
+#Run CIRCexplorer2 via One Command
+fast_circ.py parse -r REF -g GENOME -t ALIGNER [--pe] [-o OUT] <fusion>
+fast_circ.py annotate -r REF -g GENOME -G GTF [-p THREAD] [-o OUT] -f FQ
+fast_circ.py denovo -r REF -g GENOME -G GTF [-n PLUS_OUT] [-p THREAD] [-o OUT] -f FQ
+# -h --help                      Show help message.
+# -r REF --ref=REF               Gene annotation.
+# -g GENOME --genome=GENOME      Genome FASTA file.
+# -G GTF --gtf=GTF               Annotation GTF file.
+# -t ALIGNER                     Aligner (TopHat-Fusion, STAR, MapSplice, BWA, segemehl).
+# --pe                           Parse paired-end alignment file (only for TopHat-Fusion).
+# -f FQ --fastq=FQ               Input file.
+# -n PLUS_OUT --pAplus=PLUS_OUT  TopHat mapping directory for p(A)+ RNA-seq.
+# -p THREAD --thread=THREAD      Running threads. [default: 10]
+# -o OUT --output=OUT            Output directory. [default: .]
+
+
+#0326
+#安装
+git clone git://github.com/YangLab/CIRCexplorer2.git
+cd 04circRNA/01package/CIRCexplorer2
+pip install -r requirements.txt
+python setup.py install
+#安装docopt是寒哥帮我装的
+#又出现了同级目录下引用包的问题
+
+python /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/circ2/fetch_ucsc.py hg19 fa hg19.fa
+
+
+/zs32/home/shliu/miniconda/bin/python2 ~/04circRNA/01package/CIRCexplorer2/fast_circ.py parse -r ~/04circRNA/01package/CIRCexplorer2/test/data/ref.txt -g ~/04circRNA/01package/CIRCexplorer2/test/data/chr21.fa -t STAR --pe -o ~/04circRNA/02test/ /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/test/data/fusion_junction.bed
+
+/zs32/home/shliu/miniconda/bin/python2 circ2/fast_circ.py parse -r /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/test/data/ref.txt -g /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/test/data/chr21.fa -t /opt/tools/seq-analysis/STAR-STAR_2.4.2a/bin/Linux_x86_64/STAR [--pe] [-o /zs32/home/jcdai/04circRNA/02test] 
+
+
+#0328 用这个算
+/zs32/home/shliu/miniconda/bin/CIRCexplorer2 
+
+python /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/circ2/fetch_ucsc.py hg19 ref hg19_ref.txt
+python /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/circ2/fetch_ucsc.py hg19 kg hg19_kg.txt
+python /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/circ2/fetch_ucsc.py hg19 ens hg19_ens.txt
+python /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/circ2/fetch_ucsc.py hg19 fa hg19.fa
+cat hg19_ref.txt hg19_kg.txt hg19_ens.txt > hg19_ref_all.txt
+#hg19_ref_all.txt
+
+/opt/tools/seq-analysis/STAR-STAR_2.4.2a/STAR/bin/Linux_x86_64/STAR --chimSegmentMin 10 --runThreadN 10 --genomeDir /zs32/data-analysis/liucy_group/llhuang/Reflib/STARGencode19index --readFilesIn /zs32/data-analysis/liucy_group/shareData/microRNA.2015-6-10/reads/Human_M30-T12-V-IM15025-R02_good_1.fq /zs32/data-analysis/liucy_group/shareData/microRNA.2015-6-10/reads/Human_M30-T12-V-IM15025-R02_good_2.fq
+
+/zs32/home/shliu/miniconda/bin/CIRCexplorer2 parse -t STAR Chimeric.out.junction > CIRCexplorer2_parse.log
+#back_spliced_junction.bed
+
+/zs32/home/shliu/miniconda/bin/CIRCexplorer2 annotate -r hg19_ref_all.txt -g /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/hg19.fa -b back_spliced_junction.bed -o circularRNA_known.txt > CIRCexplorer2_annotate.log
+
+/zs32/home/shliu/miniconda/bin/CIRCexplorer2 denovo -r hg19_ref_all.txt -g /zs32/home/jcdai/04circRNA/01package/CIRCexplorer2/hg19.fa -b back_spliced_junction.bed --abs abs --as as -m tophat -n pAplus_tophat -o denovo > CIRCexplorer2_denovo.log
+
+
+
+
+
+
+
+
+
+
+
+
+
