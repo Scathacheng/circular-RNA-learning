@@ -1,0 +1,80 @@
+python mapsplice.py [options]* -c <Reference_Sequence> -x <Bowtie_Index> -1 <Read_List1> -2 <Read_List2>
+
+
+
+-c <string> 	
+
+The directory containing the sequence files of reference genome. All sequence files are required to:
+
+    In "FASTA" format, with  '.fa' extension.
+    One chromosome per sequence file.
+    Chromosome name in the header line ('>' not included) is the same as the sequence file base name, and does not contain any blank space.
+    E.g. If the header line is '>chr1', then the sequence file name should be 'chr1.fa'.
+
+-x <string> 	
+
+The basename (including directory path) of Bowtie index to be searched. The basename is the name of any of the index files up to but not including the final .1.ebwt / .rev.1.ebwt / etc.
+
+    MapSplice uses Bowtie 1 index. Bowtie 2 index is not supported.
+    If you do not have a Bowite index, you can ignore this option, (or the index you specified can not be found), MapSplice will build the index from reference sequences you specified in -c. (build index from reference sequence costs extra time, the index is saved in output directory.
+    Pre-built indexes of various reference genome can be downloaded from Bowtie's website. Use with cation when using pre-built index. Make sure the index is consistent with the  sequence files specified in -c. For more information about Bowtie index, please visit Bowtie's website.
+
+-1 <string> 	Comma-separated (no blank space) list of read sequence files in FASTA/FASTQ format. When running with pair-end read, this should contain #1 mates (filename usually includes _1).
+-2 <string> 	Comma-separated (no blank space) list of read sequence files in FASTA/FASTQ format. -2 is only used when running with pair-end read. This should contain #2 mates (filename usually includes _2). Files must be in the same order with those specified in -1.
+
+Optional arguments
+
+     Input/Output and Performance options
+
+-p / --threads <int> 	Number of threads to be used for parallel aligning. Default is 1.
+-o / --output <string> 	The directory in which MapSplice will write its output. Default is "./mapsplice_out/".
+--qual-scale <string> 	
+
+Type of input qualities. By default MapSplice tries to determine the quality scale automatically. This option overrides the automatic detected quality scale.
+
+    phred33: the input quality type is Phred+33 (Illumina 1.8+, Sanger)
+    phred64:  the input quality type is Phred+64 (Illumina 1.3+ ~ 1.7+)
+    solexa64: the input quality type is Solexa+64 (Solexa)
+
+--bam 	Generate BAM output. By default MapSplice reports alignmnet in SAM format.
+--keep-tmp 	Keep the intermediate files. By default MapSplice deletes all the intermediate files once finished running.
+
+    Alignment options
+
+-s / --seglen <int>  	Read will be divided into <int> bp segments for initial aligning. Default is 25.
+
+    Suggested to be in range of [18,25], segment lengths shorter than 18 may cause more false positive and MapSplice may get significantly slower. 
+    For read longer than 50bp, segment length of 25(default) is highly recommended. 
+
+--min-map-len <int> 	
+
+MapSplice will only report read alignments that can be completely mapped or mapped no less than <int> bases. Default is 50. Set this option to 0 to only report completely mapped reads.
+-i / --min-intron <int> 	Minimum length of splice junctions. Mapsplice will not search for any splice junctions with a gap shorter than <int> bp. Default is 50.
+-I / --max-intron <int> 	Maximum length of splice junctions. Mapsplice will not search for any splice junctions with a gap longer than <int> bp. Default is 300,000.
+--non-canonical-double-anchor 	Search for double anchored non-canonical junctions in addition to the default canonical and semi-canonical junctions.
+--non-canonical-single-anchor 	Search for single anchored non-canonical junctions in addition to the default canonical and semi-canonical junctions.
+-m / --splice-mis <int> 	
+
+Maximum number of mismatches that are allowed in the first/last segment crossing a splice junction in the range of [0, 2]. Default is 1.
+
+(Maximum number of mismatches that are allowed in the middle segment crossing a splice junction is always fixed at 2.)
+--max-append-mis <int>  	Maximum number of mismatches allowed to append a high error exonic segment next to an adjacent low error segment. Default is 3. 
+--ins <int> 	Maximum insertion length. (insertion in read / deletion in reference genome). Default is 6, must be in range [0, 10]
+--del <int> 	Maximum deletion length. (deletion in read / insertion in reference genome). Default is 6.
+--fusion | --fusion-non-canonical  	--fusion: Search for canonical and semi-canonical fusion junctions.
+--fusion-non-canonical: Search for canonical, semi-canonical, and non-canonical fusion junctions. 
+--min-fusion-distance <int> 	Minimim distance between two segments to be considered as fusion candidate. This threshold applies when the two segments aligned to the same chromosome but on different strand or in correct order. Default is 10,000. Consider set this to 200 if you are detecting Circurlar RNA.
+--gene-gtf <string> 	
+
+Gene annotation file in GTF format, used to annotate fusion junctions. Can be downloaded from ENSEMBL ftp site. (e.g, for human hg19: Homo_sapiens.GRCh37.66.gtf.gz, older version that does not have "gene_biotype" field is NOT supported). Required for the detection of Circular RNA.
+--filtering <int> 	
+
+The stringency level of filtering splice junctions in the range of [1, 2]. Default is 2.
+
+    1: Less stringent filtering, with higher sensitivity of splice junction detection.
+    2: Standard filtering.
+
+     Other Options
+
+-h/--help 	Print the usage message
+-v/--version  	Print the version of MapSplice
